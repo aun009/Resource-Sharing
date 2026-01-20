@@ -20,7 +20,7 @@ spec:
         - containerPort: 3306
         env:
         - name: MYSQL_ROOT_PASSWORD
-          value: 1212 # Matches backend config
+          value: "1212" # Matches backend config
         - name: MYSQL_DATABASE
           value: skillswap_db
         volumeMounts:

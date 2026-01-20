@@ -23,7 +23,7 @@ spec:
         - name: SPRING_DATASOURCE_USERNAME
           value: root
         - name: SPRING_DATASOURCE_PASSWORD
-          value: rootuser123 # Recommend using Secrets in prod
+          value: "1212" # Recommend using Secrets in prod
 ---
 apiVersion: v1
 kind: Service
