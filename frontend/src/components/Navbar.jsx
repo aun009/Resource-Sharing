@@ -37,7 +37,7 @@ const Navbar = () => {
           <div style={{ width: '10px', height: '10px', background: '#febc2e', borderRadius: '50%' }}></div>
           <div style={{ width: '10px', height: '10px', background: '#28c840', borderRadius: '50%' }}></div>
         </div>
-        <span style={{ fontWeight: '700', letterSpacing: '-0.5px' }}>SkillSwap</span>
+        <span style={{ fontWeight: '700', letterSpacing: '-0.5px' }}>Resourcify</span>
       </Link>
 
       <div style={{ display: 'flex', gap: '30px', alignItems: 'center' }}>

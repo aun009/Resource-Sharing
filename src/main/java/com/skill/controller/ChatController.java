@@ -62,7 +62,7 @@ public class ChatController {
                         emailService.sendSimpleMessage(
                                 chatMessage.getRecipient(),
                                 "New Message from " + chatMessage.getSender(),
-                                "You have received a new message regarding your request on SkillSwap:\n\n" +
+                                "You have received a new message regarding your request on Resourcify:\n\n" +
                                         chatMessage.getContent());
                     } catch (Exception e) {
                         System.err.println("Failed to send delayed email: " + e.getMessage());
@@ -103,7 +103,7 @@ public class ChatController {
                         emailService.sendSimpleMessage(
                                 saved.getRecipient(),
                                 "New Request/Message from " + saved.getSender(),
-                                "You have received a new message/request on SkillSwap:\n\n" +
+                                "You have received a new message/request on Resourcify:\n\n" +
                                         saved.getContent());
                     } catch (Exception e) {
                         System.err.println("Failed to send delayed email: " + e.getMessage());

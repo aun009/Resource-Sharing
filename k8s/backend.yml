@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: resourcify-backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: resourcify-backend
+  template:
+    metadata:
+      labels:
+        app: resourcify-backend
+    spec:
+      containers:
+      - name: backend
+        image: arun2232/resourcify-backend:latest 
+        ports:
+        - containerPort: 8084
+        env:
+        - name: SPRING_DATASOURCE_URL
+          value: jdbc:mysql://resourcify-db:3306/skillswap_db
+        - name: SPRING_DATASOURCE_USERNAME
+          value: root
+        - name: SPRING_DATASOURCE_PASSWORD
+          value: rootuser123 # Recommend using Secrets in prod
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: resourcify-backend
+spec:
+  selector:
+    app: resourcify-backend
+  ports:
+    - protocol: TCP
+      port: 8084
+      targetPort: 8084
+  type: ClusterIP

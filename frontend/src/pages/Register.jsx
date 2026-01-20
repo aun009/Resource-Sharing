@@ -42,7 +42,7 @@ const Register = () => {
                 animate={{ scale: 1, opacity: 1 }}
                 style={{ padding: '40px', borderRadius: '24px', width: '100%', maxWidth: '400px', backgroundColor: 'rgba(255, 255, 255, 0.9)', boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.37)' }}
             >
-                <h2 style={{ textAlign: 'center', marginBottom: '30px', color: '#1d1d1f', fontSize: '2rem' }}>Join SkillSwap</h2>
+                <h2 style={{ textAlign: 'center', marginBottom: '30px', color: '#1d1d1f', fontSize: '2rem' }}>Join Resourcify</h2>
                 {error && <div style={{ color: '#d32f2f', textAlign: 'center', marginBottom: '20px', padding: '10px', background: 'rgba(211, 47, 47, 0.1)', borderRadius: '8px', fontSize: '0.9rem' }}>{error}</div>}
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                     <div>

@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: resourcify-frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: resourcify-frontend
+  template:
+    metadata:
+      labels:
+        app: resourcify-frontend
+    spec:
+      containers:
+      - name: frontend
+        image: arun2232/resourcify-frontend:latest # REPLACE 'youruser'
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: resourcify-frontend
+spec:
+  selector:
+    app: resourcify-frontend
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+  type: LoadBalancer # Exposes IP externally on AWS
