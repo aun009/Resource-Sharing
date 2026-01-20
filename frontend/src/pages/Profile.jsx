@@ -11,6 +11,7 @@ const Profile = () => {
     const [showSettings, setShowSettings] = useState(false);
     const [myResources, setMyResources] = useState([]);
     const [myRequests, setMyRequests] = useState([]);
+    const [isUploading, setIsUploading] = useState(false);
 
     // Fetch Profile and Listings
     const fetchProfileData = async () => {
@@ -100,13 +101,73 @@ const Profile = () => {
                 </button>
 
                 <div style={{ position: 'relative', display: 'inline-block' }}>
-                    <motion.div
-                        whileHover={{ rotate: 10, scale: 1.1 }}
-                        style={{ width: '120px', height: '120px', background: 'linear-gradient(135deg, #0071e3, #00c6fb)', borderRadius: '50%', margin: '0 auto 20px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '3rem', fontWeight: 'bold', boxShadow: '0 10px 30px rgba(0, 113, 227, 0.3)' }}
+                    <div
+                        onClick={() => document.getElementById('profilePhotoInput').click()}
+                        style={{ cursor: 'pointer', position: 'relative' }}
                     >
-                        {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
-                    </motion.div>
-                    <div style={{ position: 'absolute', bottom: '20px', right: '0', background: '#34c759', width: '25px', height: '25px', borderRadius: '50%', border: '3px solid white' }}></div>
+                        {user.profilePhoto ? (
+                            <motion.img
+                                whileHover={{ scale: 1.05 }}
+                                src={`data:image/jpeg;base64,${user.profilePhoto}`}
+                                alt="Profile"
+                                style={{ width: '120px', height: '120px', borderRadius: '50%', objectFit: 'cover', border: '4px solid white', boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }}
+                            />
+                        ) : (
+                            <motion.div
+                                whileHover={{ rotate: 10, scale: 1.1 }}
+                                style={{ width: '120px', height: '120px', background: 'linear-gradient(135deg, #0071e3, #00c6fb)', borderRadius: '50%', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '3rem', fontWeight: 'bold', boxShadow: '0 10px 30px rgba(0, 113, 227, 0.3)' }}
+                            >
+                                {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
+                            </motion.div>
+                        )}
+                        <div style={{ position: 'absolute', bottom: '5px', right: '0', background: 'white', borderRadius: '50%', padding: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>
+                            📷
+                        </div>
+                    </div>
+                    <input
+                        type="file"
+                        id="profilePhotoInput"
+                        accept="image/*"
+                        style={{ display: 'none' }}
+                        onChange={async (e) => {
+                            const file = e.target.files[0];
+                            if (!file) return;
+                            setIsUploading(true);
+                            const formData = new FormData();
+                            formData.append('file', file);
+                            try {
+                                const res = await fetch('http://localhost:8084/api/users/photo', {
+                                    method: 'PUT',
+                                    headers: { 'Authorization': `Bearer ${token}` },
+                                    body: formData
+                                });
+                                if (res.ok) {
+                                    fetchProfileData();
+                                } else {
+                                    alert("Failed to upload photo");
+                                }
+                            } catch (err) {
+                                console.error(err);
+                            } finally {
+                                setIsUploading(false);
+                            }
+                        }}
+                    />
+                    {isUploading && (
+                        <div style={{
+                            position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+                            borderRadius: '50%', background: 'rgba(255,255,255,0.8)',
+                            display: 'flex', justifyContent: 'center', alignItems: 'center',
+                            color: '#0071e3', fontWeight: 'bold'
+                        }}>
+                            <motion.div
+                                animate={{ rotate: 360 }}
+                                transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
+                                style={{ width: '30px', height: '30px', border: '3px solid #0071e3', borderTopColor: 'transparent', borderRadius: '50%' }}
+                            />
+                        </div>
+                    )}
+                    <div style={{ position: 'absolute', bottom: '20px', right: '0', background: '#34c759', width: '25px', height: '25px', borderRadius: '50%', border: '3px solid white', display: 'none' }}></div>
                 </div>
 
                 <h1 style={{ marginBottom: '10px', color: 'var(--text)' }}>{user.name || 'User'}</h1>

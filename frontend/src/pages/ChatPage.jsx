@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { motion } from 'framer-motion';
+import Stomp from 'stompjs';
+import SockJS from 'sockjs-client/dist/sockjs';
 
 const ChatPage = () => {
     const { user, token } = useAuth();
@@ -9,10 +11,10 @@ const ChatPage = () => {
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState("");
     const [currentUserEmail, setCurrentUserEmail] = useState('');
+    const [isConnected, setIsConnected] = useState(false);
 
-    // Refresh history interval
-    const pollingInterval = useRef(null);
     const messagesEndRef = useRef(null);
+    const selectedPartnerRef = useRef(null);
 
     const fetchCurrentUser = async () => {
         if (!token) return;
@@ -69,15 +71,43 @@ const ChatPage = () => {
         fetchConversations();
     }, [token]);
 
+    // Keep ref updated
     useEffect(() => {
+        selectedPartnerRef.current = selectedPartner;
         if (selectedPartner) {
             fetchHistory();
-            pollingInterval.current = setInterval(fetchHistory, 3000);
         }
-        return () => {
-            if (pollingInterval.current) clearInterval(pollingInterval.current);
-        };
     }, [selectedPartner]);
+
+    // WebSocket Connection
+    useEffect(() => {
+        if (!currentUserEmail) return;
+
+        const socket = new SockJS('http://localhost:8084/ws');
+        const client = Stomp.over(socket);
+        client.debug = null; // Disable debug logs
+
+        client.connect({}, () => {
+            client.subscribe(`/topic/user/${currentUserEmail}/messages`, (payload) => {
+                const msg = JSON.parse(payload.body);
+                const currentPartner = selectedPartnerRef.current;
+
+                // Update active chat if relevant
+                if (currentPartner && (msg.sender === currentPartner.email || msg.recipient === currentPartner.email)) {
+                    setMessages(prev => [...prev, msg]);
+                }
+
+                // Refresh conversations list to show new message preview/order
+                fetchConversations();
+            });
+        }, (err) => {
+            console.error("WebSocket error:", err);
+        });
+
+        return () => {
+            if (client && client.connected) client.disconnect();
+        };
+    }, [currentUserEmail]);
 
     // Scroll only when new messages arrive
     useEffect(() => {
@@ -159,9 +189,14 @@ const ChatPage = () => {
                                 background: selectedPartner?.email === c.email ? 'rgba(255,255,255,0.2)' : 'linear-gradient(135deg, #e0e0e0, #f5f5f7)',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                                 fontWeight: 'bold', fontSize: '1.1rem', color: selectedPartner?.email === c.email ? 'white' : '#555',
-                                boxShadow: '0 2px 10px rgba(0,0,0,0.05)'
+                                boxShadow: '0 2px 10px rgba(0,0,0,0.05)',
+                                overflow: 'hidden'
                             }}>
-                                {c.name.charAt(0).toUpperCase()}
+                                {c.photo ? (
+                                    <img src={`data:image/jpeg;base64,${c.photo}`} alt={c.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                ) : (
+                                    c.name.charAt(0).toUpperCase()
+                                )}
                             </div>
                             <div style={{ flex: 1, overflow: 'hidden' }}>
                                 <div style={{ fontWeight: '600', fontSize: '1rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.name}</div>
@@ -198,9 +233,14 @@ const ChatPage = () => {
                                 background: 'linear-gradient(135deg, #0071e3, #00c6fb)',
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                                 fontWeight: 'bold', fontSize: '1.2rem', color: 'white',
-                                boxShadow: '0 4px 12px rgba(0, 113, 227, 0.3)'
+                                boxShadow: '0 4px 12px rgba(0, 113, 227, 0.3)',
+                                overflow: 'hidden'
                             }}>
-                                {selectedPartner.name.charAt(0).toUpperCase()}
+                                {selectedPartner.photo ? (
+                                    <img src={`data:image/jpeg;base64,${selectedPartner.photo}`} alt={selectedPartner.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                ) : (
+                                    selectedPartner.name.charAt(0).toUpperCase()
+                                )}
                             </div>
                             <div>
                                 <h3 style={{ margin: 0, color: 'var(--text)', fontSize: '1.2rem' }}>{selectedPartner.name}</h3>

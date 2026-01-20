@@ -46,4 +46,10 @@ public class UserService {
 
         return userRepository.save(existingUser);
     }
+
+    public void updateProfilePhoto(String email, byte[] photo) {
+        User user = getUserByEmail(email);
+        user.setProfilePhoto(photo);
+        userRepository.save(user);
+    }
 }

@@ -23,8 +23,10 @@ public class RequestController {
 
     @PostMapping
     public ResponseEntity<Request> createRequest(@RequestBody Request request, Authentication authentication) {
-        String email = (authentication != null) ? authentication.getName() : "jackworking09@gmail.com"; // Default for
-                                                                                                        // demo
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(401).build();
+        }
+        String email = authentication.getName();
         return ResponseEntity.ok(requestService.createRequest(request, email));
     }
 

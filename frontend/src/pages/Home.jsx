@@ -110,6 +110,7 @@ const Home = () => {
                     id: req.id,
                     name: req.requester ? req.requester.name : 'Unknown',
                     email: req.requester ? req.requester.email : '',
+                    userPhoto: req.requester ? req.requester.profilePhoto : null,
                     item: req.item,
                     type: req.type,
                     intent: req.intent,
@@ -159,6 +160,9 @@ const Home = () => {
                 const data = await response.json();
                 const mapped = data.map(req => ({
                     ...req,
+                    name: req.requester ? req.requester.name : 'Unknown', // Fix for Unknown name
+                    email: req.requester ? req.requester.email : '',
+                    userPhoto: req.requester ? req.requester.profilePhoto : null, // Fix for Photo
                     status: req.status,
                     helper: req.helper,
                     image: req.image,
@@ -239,15 +243,10 @@ const Home = () => {
         // Open Chat Window
         setChatPartner({
             name: selectedRequest.name,
-            email: selectedRequest.email
+            email: selectedRequest.email,
+            photo: selectedRequest.userPhoto
         });
         setShowChat(true);
-
-        // Ideally backend call for 'offerHelp' goes here (Wait, we need to actually call the backend!)
-        // The original logic missed the backend call! Let's fix that too.
-        // Actually, the previous code missed calling offerHelp API? 
-        // Let's check... in the previous file content, confirmOffer just opened chat.
-        // I will add the backend call here.
 
         fetch(`http://localhost:8084/api/requests/${selectedRequest.id}/offer`, {
             method: 'POST',
@@ -353,13 +352,16 @@ const Home = () => {
         }
     };
 
-    const openChat = (name, email) => {
-        setChatPartner({ name, email });
+    const openChat = (name, email, photo) => {
+        setChatPartner({ name, email, photo });
         setShowChat(true);
     };
 
     return (
         <div className="container" style={{ display: 'flex', flexDirection: 'row', gap: '20px', height: 'calc(100vh - 100px)', paddingTop: '100px' }}>
+            {/* ... (Motion divs for Map and Marketplace remain same) ... */}
+
+            {/* ... (Map Section) ... */}
             <motion.div
                 className="glass"
                 initial={{ opacity: 0, x: -50 }}
@@ -400,6 +402,7 @@ const Home = () => {
                 </div>
             </motion.div>
 
+            {/* Marketplace Section */}
             <motion.div
                 className="glass"
                 initial={{ opacity: 0, x: 50 }}
@@ -471,6 +474,12 @@ const Home = () => {
                     )}
                 </div>
             </motion.div>
+
+            {/* Post Request Modal - Keep as is (omitted for brevity in replacement, but wait - I should include it if I am replacing the block) */}
+            {/* The replacement tool replaces a contiguous block. I started at openChat (line 424 approx) and need to go end of file or cover enough. */}
+            {/* I will only replace openChat definition and usage in ChatWindow below */}
+            {/* Actually, let's just replace openChat and the ChatWindow render */}
+
 
             {/* Post Request Modal */}
             {showPostModal && (
@@ -585,6 +594,7 @@ const Home = () => {
                 <ChatWindow
                     partnerName={chatPartner.name}
                     partnerEmail={chatPartner.email}
+                    partnerPhoto={chatPartner.photo}
                     onClose={() => setShowChat(false)}
                     currentUserEmail={currentUserEmail}
                 />
@@ -595,7 +605,7 @@ const Home = () => {
 
 // Updated RequestCard
 const RequestCard = ({ request, onOffer, isOwner, onDelete, onAccept, onReject, onComplete, onReopen, onChat }) => {
-    const { name, item, intent, distance, time, status, helper, duration, image } = request;
+    const { name, item, intent, distance, time, status, helper, duration, image, userPhoto } = request; // Added userPhoto
     const [showMenu, setShowMenu] = useState(false);
 
     // Status Badge Color
@@ -622,15 +632,19 @@ const RequestCard = ({ request, onOffer, isOwner, onDelete, onAccept, onReject, 
         >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <div style={{
-                        width: '36px', height: '36px',
-                        background: 'linear-gradient(135deg, #e0e0e0, #f5f5f5)',
-                        borderRadius: '50%',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: '0.8rem', color: '#666', fontWeight: 'bold'
-                    }}>
-                        {name ? name.charAt(0) : '?'}
-                    </div>
+                    {userPhoto ? (
+                        <img src={`data:image/jpeg;base64,${userPhoto}`} alt={name} style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }} />
+                    ) : (
+                        <div style={{
+                            width: '36px', height: '36px',
+                            background: 'linear-gradient(135deg, #e0e0e0, #f5f5f5)',
+                            borderRadius: '50%',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: '0.8rem', color: '#666', fontWeight: 'bold'
+                        }}>
+                            {name ? name.charAt(0) : '?'}
+                        </div>
+                    )}
                     <div>
                         <strong style={{ color: '#1d1d1f' }}>{name || 'Unknown'}</strong>
                         <div style={{ fontSize: '0.75rem', color: intent === 'OFFER' ? '#34c759' : '#0071e3', fontWeight: '600', display: 'flex', gap: '5px' }}>
@@ -694,7 +708,7 @@ const RequestCard = ({ request, onOffer, isOwner, onDelete, onAccept, onReject, 
                 <div style={{ background: '#f0f0f5', padding: '10px', borderRadius: '8px', marginBottom: '10px' }}>
                     <div style={{ fontSize: '0.85rem', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span><strong>{helper.name}</strong> {intent === 'OFFER' ? 'is requesting this item!' : 'offered to help!'}</span>
-                        <button onClick={() => onChat(helper.name, helper.email)} style={{ border: 'none', background: 'none', color: '#0071e3', fontWeight: '600', cursor: 'pointer', fontSize: '0.8rem' }}>
+                        <button onClick={() => onChat(helper.name, helper.email, helper.profilePhoto)} style={{ border: 'none', background: 'none', color: '#0071e3', fontWeight: '600', cursor: 'pointer', fontSize: '0.8rem' }}>
                             Chat 💬
                         </button>
                     </div>
@@ -707,7 +721,7 @@ const RequestCard = ({ request, onOffer, isOwner, onDelete, onAccept, onReject, 
 
             {status === 'IN_PROGRESS' && (
                 <div style={{ marginTop: '10px', marginBottom: '10px' }}>
-                    <button onClick={() => isOwner ? (helper && onChat(helper.name, helper.email)) : onChat(name, request.email)} style={{ width: '100%', padding: '8px', borderRadius: '8px', background: '#f0f0f5', border: 'none', color: '#0071e3', fontWeight: '600', cursor: 'pointer' }}>
+                    <button onClick={() => isOwner ? (helper && onChat(helper.name, helper.email, helper.profilePhoto)) : onChat(name, request.email, userPhoto)} style={{ width: '100%', padding: '8px', borderRadius: '8px', background: '#f0f0f5', border: 'none', color: '#0071e3', fontWeight: '600', cursor: 'pointer' }}>
                         Chat with {isOwner ? (helper ? helper.name : 'Helper') : name} 💬
                     </button>
                 </div>

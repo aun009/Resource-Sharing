@@ -32,12 +32,11 @@ public class ResourceController {
             @RequestParam(value = "image", required = false) MultipartFile imageFile) {
         try {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            String currentPrincipalName = "jackworking09@gmail.com";
-
-            if (authentication != null && authentication.isAuthenticated()
-                    && !"anonymousUser".equals(authentication.getName())) {
-                currentPrincipalName = authentication.getName();
+            if (authentication == null || !authentication.isAuthenticated()
+                    || "anonymousUser".equals(authentication.getName())) {
+                return ResponseEntity.status(401).build();
             }
+            String currentPrincipalName = authentication.getName();
 
             Resource resource = new Resource();
             resource.setTitle(title);

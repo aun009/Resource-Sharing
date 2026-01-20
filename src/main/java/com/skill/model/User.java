@@ -41,4 +41,8 @@ public class User {
 
     @Column(length = 2000)
     private String skills; // JSON string or comma-separated list
+
+    @Lob
+    @Column(length = 1000000)
+    private byte[] profilePhoto;
 }

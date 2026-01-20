@@ -11,6 +11,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+
 import java.util.List;
 
 @RestController
@@ -30,6 +31,12 @@ public class ChatController {
     @Autowired
     private ChatMessageRepository chatMessageRepository;
 
+    @Autowired
+    private org.springframework.messaging.simp.user.SimpUserRegistry userRegistry;
+
+    private final java.util.concurrent.ScheduledExecutorService scheduler = java.util.concurrent.Executors
+            .newScheduledThreadPool(1);
+
     // WebSocket handling
     @MessageMapping("/chat.sendMessage")
     public void sendMessage(@Payload ChatMessage chatMessage) {
@@ -39,21 +46,30 @@ public class ChatController {
         chatMessageRepository.save(chatMessage);
 
         // Send to specific user directly using their email/username (recipient)
-        messagingTemplate.convertAndSendToUser(
-                chatMessage.getRecipient(),
-                "/queue/messages",
+        messagingTemplate.convertAndSend("/topic/user/" + chatMessage.getRecipient().toLowerCase() + "/messages",
                 chatMessage);
 
-        messagingTemplate.convertAndSendToUser(
-                chatMessage.getSender(),
-                "/queue/messages",
+        // Also send to sender (for other open tabs)
+        messagingTemplate.convertAndSend("/topic/user/" + chatMessage.getSender().toLowerCase() + "/messages",
                 chatMessage);
 
-        emailService.sendSimpleMessage(
-                chatMessage.getRecipient(),
-                "New Message from " + chatMessage.getSender(),
-                "You have received a new message regarding your request on SkillSwap:\n\n" +
-                        chatMessage.getContent());
+        // Smart Email: Wait 40s, then check validity
+        if (userRegistry.getUser(chatMessage.getRecipient()) == null) {
+            scheduler.schedule(() -> {
+                // Check again if user is still offline
+                if (userRegistry.getUser(chatMessage.getRecipient()) == null) {
+                    try {
+                        emailService.sendSimpleMessage(
+                                chatMessage.getRecipient(),
+                                "New Message from " + chatMessage.getSender(),
+                                "You have received a new message regarding your request on SkillSwap:\n\n" +
+                                        chatMessage.getContent());
+                    } catch (Exception e) {
+                        System.err.println("Failed to send delayed email: " + e.getMessage());
+                    }
+                }
+            }, 40, java.util.concurrent.TimeUnit.SECONDS);
+        }
     }
 
     // REST API for sending messages (e.g. from Marketplace button)
@@ -61,11 +77,10 @@ public class ChatController {
     public ResponseEntity<ChatMessage> sendRestMessage(@RequestBody ChatMessage chatMessage,
             Authentication authentication) {
         // Enforce sender identity from token if possible
-        if (authentication != null) {
-            chatMessage.setSender(authentication.getName());
-        } else if (chatMessage.getSender() == null) {
-            chatMessage.setSender("jackworking09@gmail.com"); // Fallback
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(401).build();
         }
+        chatMessage.setSender(authentication.getName());
 
         if (chatMessage.getTimestamp() == null) {
             chatMessage.setTimestamp(LocalDateTime.now());
@@ -75,25 +90,26 @@ public class ChatController {
         ChatMessage saved = chatMessageRepository.save(chatMessage);
 
         // Forward to WebSocket users (real-time update)
-        messagingTemplate.convertAndSendToUser(
-                saved.getRecipient(),
-                "/queue/messages",
-                saved);
+        System.out.println("Sending WS to: " + saved.getRecipient());
+        messagingTemplate.convertAndSend("/topic/user/" + saved.getRecipient().toLowerCase() + "/messages", saved);
+        messagingTemplate.convertAndSend("/topic/user/" + saved.getSender().toLowerCase() + "/messages", saved);
 
-        messagingTemplate.convertAndSendToUser(
-                saved.getSender(),
-                "/queue/messages",
-                saved);
-
-        // Send Email
-        try {
-            emailService.sendSimpleMessage(
-                    saved.getRecipient(),
-                    "New Request/Message from " + saved.getSender(),
-                    "You have received a new message/request on SkillSwap:\n\n" +
-                            saved.getContent());
-        } catch (Exception e) {
-            System.err.println("Failed to send email: " + e.getMessage());
+        // Smart Email: Wait 40s, then check validity
+        if (userRegistry.getUser(saved.getRecipient()) == null) {
+            scheduler.schedule(() -> {
+                // Check again if user is still offline
+                if (userRegistry.getUser(saved.getRecipient()) == null) {
+                    try {
+                        emailService.sendSimpleMessage(
+                                saved.getRecipient(),
+                                "New Request/Message from " + saved.getSender(),
+                                "You have received a new message/request on SkillSwap:\n\n" +
+                                        saved.getContent());
+                    } catch (Exception e) {
+                        System.err.println("Failed to send delayed email: " + e.getMessage());
+                    }
+                }
+            }, 40, java.util.concurrent.TimeUnit.SECONDS);
         }
 
         return ResponseEntity.ok(saved);
@@ -135,11 +151,16 @@ public class ChatController {
         for (String email : partnersEnv) {
             String name = "User";
             com.skill.model.User u = userRepository.findByEmail(email).orElse(null);
-            if (u != null)
-                name = u.getName();
 
             java.util.Map<String, String> map = new java.util.HashMap<>();
             map.put("email", email);
+
+            if (u != null) {
+                name = u.getName();
+                if (u.getProfilePhoto() != null && u.getProfilePhoto().length > 0) {
+                    map.put("photo", java.util.Base64.getEncoder().encodeToString(u.getProfilePhoto()));
+                }
+            }
             map.put("name", name);
             result.add(map);
         }

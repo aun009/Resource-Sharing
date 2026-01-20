@@ -1,11 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
+import Stomp from 'stompjs';
+import SockJS from 'sockjs-client/dist/sockjs';
 
-const ChatWindow = ({ partnerName, partnerEmail, onClose, currentUserEmail }) => {
+if (typeof global === 'undefined') {
+    window.global = window;
+}
+
+const ChatWindow = ({ partnerName, partnerEmail, partnerPhoto, onClose, currentUserEmail }) => {
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState("");
     const messagesEndRef = useRef(null);
-    const pollingInterval = useRef(null);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -19,12 +24,14 @@ const ChatWindow = ({ partnerName, partnerEmail, onClose, currentUserEmail }) =>
             });
             if (response.ok) {
                 const data = await response.json();
-                // Filter messages relevant to this partner
-                const relevant = data.filter(msg =>
-                    (msg.sender === currentUserEmail && msg.recipient === partnerEmail) ||
-                    (msg.sender === partnerEmail && msg.recipient === currentUserEmail)
-                );
-                // Sort by timestamp if needed, though backend does it
+                // Filter messages relevant to this partner (Case Insensitive)
+                const relevant = data.filter(msg => {
+                    const s = (msg.sender || "").toLowerCase();
+                    const r = (msg.recipient || "").toLowerCase();
+                    const me = (currentUserEmail || "").toLowerCase();
+                    const other = (partnerEmail || "").toLowerCase();
+                    return (s === me && r === other) || (s === other && r === me);
+                });
                 setMessages(relevant);
             }
         } catch (error) {
@@ -64,12 +71,56 @@ const ChatWindow = ({ partnerName, partnerEmail, onClose, currentUserEmail }) =>
         }
     };
 
+    // Initial History Load
     useEffect(() => {
         fetchHistory();
-        // Poll for new messages every 3 seconds
-        pollingInterval.current = setInterval(fetchHistory, 3000);
-        return () => clearInterval(pollingInterval.current);
     }, [partnerEmail]);
+
+    // WebSocket Connection
+    useEffect(() => {
+        if (!currentUserEmail) return;
+
+        let client = null;
+        let socket = null;
+        let retryTimeout = null;
+
+        const connect = () => {
+            socket = new SockJS('http://localhost:8084/ws');
+            client = Stomp.over(socket);
+
+            client.debug = (str) => {
+                // console.log("STOMP: " + str); // Uncomment for debugging
+            };
+
+            client.connect({}, () => {
+                const topic = `/topic/user/${currentUserEmail.toLowerCase()}/messages`;
+                console.log("Connected to WebSocket. Subscribing to " + topic);
+                client.subscribe(topic, (payload) => {
+                    const msg = JSON.parse(payload.body);
+                    // Update if message belongs to this conversation
+                    if (msg.sender === partnerEmail || (msg.sender === currentUserEmail && msg.recipient === partnerEmail)) {
+                        setMessages(prev => {
+                            // If sender is ME, we added it optimistically.
+                            if (msg.sender === currentUserEmail) return prev;
+                            return [...prev, msg];
+                        });
+                    }
+                });
+            }, (err) => {
+                console.error("WebSocket Connection Error, retrying in 5s...", err);
+                retryTimeout = setTimeout(connect, 5000);
+            });
+        };
+
+        connect();
+
+        return () => {
+            if (client && client.connected) {
+                try { client.disconnect(); } catch (e) { console.error("Disconnect error", e); }
+            }
+            if (retryTimeout) clearTimeout(retryTimeout);
+        };
+    }, [currentUserEmail, partnerEmail]);
 
     useEffect(() => {
         scrollToBottom();
@@ -89,9 +140,13 @@ const ChatWindow = ({ partnerName, partnerEmail, onClose, currentUserEmail }) =>
             {/* Header */}
             <div style={{ padding: '15px', background: '#0071e3', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <div style={{ width: '30px', height: '30px', background: 'rgba(255,255,255,0.2)', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '0.8rem', fontWeight: 'bold' }}>
-                        {partnerName.charAt(0).toUpperCase()}
-                    </div>
+                    {partnerPhoto ? (
+                        <img src={`data:image/jpeg;base64,${partnerPhoto}`} alt={partnerName} style={{ width: '30px', height: '30px', borderRadius: '50%', objectFit: 'cover', border: '2px solid white' }} />
+                    ) : (
+                        <div style={{ width: '30px', height: '30px', background: 'rgba(255,255,255,0.2)', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '0.8rem', fontWeight: 'bold' }}>
+                            {partnerName.charAt(0).toUpperCase()}
+                        </div>
+                    )}
                     <span style={{ fontWeight: '600' }}>{partnerName}</span>
                 </div>
                 <span onClick={onClose} style={{ cursor: 'pointer', fontSize: '1.5rem', lineHeight: '1' }}>×</span>
