@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { FaCog } from 'react-icons/fa';
 import SettingsModal from '../components/SettingsModal';
+import { API_BASE_URL } from '../config';
 
 const Profile = () => {
     const { token, logout } = useAuth();
@@ -18,7 +19,7 @@ const Profile = () => {
         if (!token) return;
         try {
             // Profile
-            const profileRes = await fetch('http://localhost:8084/api/users/profile', {
+            const profileRes = await fetch(`${API_BASE_URL}/api/users/profile`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (profileRes.ok) {
@@ -32,7 +33,7 @@ const Profile = () => {
             }
 
             // My Resources
-            const resourcesRes = await fetch('http://localhost:8084/api/resources/my', {
+            const resourcesRes = await fetch(`${API_BASE_URL}/api/resources/my`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (resourcesRes.ok) {
@@ -40,7 +41,7 @@ const Profile = () => {
             }
 
             // My Requests
-            const requestsRes = await fetch('http://localhost:8084/api/requests/my', {
+            const requestsRes = await fetch(`${API_BASE_URL}/api/requests/my`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (requestsRes.ok) {
@@ -58,7 +59,7 @@ const Profile = () => {
 
     const handleUpdateProfile = async (updatedData) => {
         try {
-            const response = await fetch('http://localhost:8084/api/users/profile', {
+            const response = await fetch(`${API_BASE_URL}/api/users/profile`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -136,7 +137,7 @@ const Profile = () => {
                             const formData = new FormData();
                             formData.append('file', file);
                             try {
-                                const res = await fetch('http://localhost:8084/api/users/photo', {
+                                const res = await fetch(`${API_BASE_URL}/api/users/photo`, {
                                     method: 'PUT',
                                     headers: { 'Authorization': `Bearer ${token}` },
                                     body: formData

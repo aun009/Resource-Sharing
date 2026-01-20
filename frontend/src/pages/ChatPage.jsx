@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { motion } from 'framer-motion';
 import Stomp from 'stompjs';
 import SockJS from 'sockjs-client/dist/sockjs';
+import { API_BASE_URL, WS_BASE_URL } from '../config';
 
 const ChatPage = () => {
     const { user, token } = useAuth();
@@ -19,7 +20,7 @@ const ChatPage = () => {
     const fetchCurrentUser = async () => {
         if (!token) return;
         try {
-            const response = await fetch('http://localhost:8084/api/users/me', {
+            const response = await fetch(`${API_BASE_URL}/api/users/me`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (response.ok) {
@@ -34,7 +35,7 @@ const ChatPage = () => {
     const fetchConversations = async () => {
         if (!token) return;
         try {
-            const response = await fetch('http://localhost:8084/api/chat/conversations', {
+            const response = await fetch(`${API_BASE_URL}/api/chat/conversations`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (response.ok) {
@@ -49,7 +50,7 @@ const ChatPage = () => {
     const fetchHistory = async () => {
         if (!selectedPartner) return;
         try {
-            const response = await fetch('http://localhost:8084/api/chat/history', {
+            const response = await fetch(`${API_BASE_URL}/api/chat/history`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (response.ok) {
@@ -83,7 +84,7 @@ const ChatPage = () => {
     useEffect(() => {
         if (!currentUserEmail) return;
 
-        const socket = new SockJS('http://localhost:8084/ws');
+        const socket = new SockJS(`${WS_BASE_URL}/ws`);
         const client = Stomp.over(socket);
         client.debug = null; // Disable debug logs
 
@@ -144,7 +145,7 @@ const ChatPage = () => {
         setInput("");
 
         try {
-            await fetch('http://localhost:8084/api/chat/send', {
+            await fetch(`${API_BASE_URL}/api/chat/send`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

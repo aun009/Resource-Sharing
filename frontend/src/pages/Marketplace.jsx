@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 
 import ChatWindow from '../components/ChatWindow';
 import { useAuth } from '../context/AuthContext';
+import { API_BASE_URL } from '../config';
 
 const Marketplace = () => {
     const { user, token } = useAuth();
@@ -18,7 +19,7 @@ const Marketplace = () => {
     const fetchCurrentUser = async () => {
         if (!token) return;
         try {
-            const response = await fetch('http://localhost:8084/api/users/me', {
+            const response = await fetch(`${API_BASE_URL}/api/users/me`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (response.ok) {
@@ -32,7 +33,7 @@ const Marketplace = () => {
 
     const fetchResources = async () => {
         try {
-            const response = await fetch('http://localhost:8084/api/resources');
+            const response = await fetch(`${API_BASE_URL}/api/resources`);
             if (response.ok) {
                 const data = await response.json();
                 setResources(data); // Backend resource has ownerName and ownerEmail?
@@ -105,7 +106,7 @@ const Marketplace = () => {
                 headers['Authorization'] = `Bearer ${token}`;
             }
 
-            const response = await fetch('http://localhost:8084/api/resources', {
+            const response = await fetch(`${API_BASE_URL}/api/resources`, {
                 method: 'POST',
                 headers: headers,
                 body: formData

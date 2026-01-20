@@ -6,6 +6,7 @@ import L from 'leaflet';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import ChatWindow from '../components/ChatWindow';
+import { API_BASE_URL } from '../config';
 
 // Fix for default marker icon missing
 import icon from 'leaflet/dist/images/marker-icon.png';
@@ -87,7 +88,7 @@ const Home = () => {
     const fetchCurrentUser = async () => {
         if (!token) return;
         try {
-            const response = await fetch('http://localhost:8084/api/users/me', {
+            const response = await fetch(`${API_BASE_URL}/api/users/me`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (response.ok) {
@@ -101,7 +102,7 @@ const Home = () => {
 
     const fetchRequests = async () => {
         try {
-            const response = await fetch('http://localhost:8084/api/requests');
+            const response = await fetch(`${API_BASE_URL}/api/requests`);
             if (response.ok) {
                 const data = await response.json();
 
@@ -153,7 +154,7 @@ const Home = () => {
     const fetchMyRequests = async () => {
         if (!token) return;
         try {
-            const response = await fetch('http://localhost:8084/api/requests/my', {
+            const response = await fetch(`${API_BASE_URL}/api/requests/my`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (response.ok) {
@@ -206,7 +207,7 @@ const Home = () => {
         }
 
         try {
-            const response = await fetch(`http://localhost:8084/api/requests/${id}/${action}`, {
+            const response = await fetch(`${API_BASE_URL}/api/requests/${id}/${action}`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -248,7 +249,7 @@ const Home = () => {
         });
         setShowChat(true);
 
-        fetch(`http://localhost:8084/api/requests/${selectedRequest.id}/offer`, {
+        fetch(`${API_BASE_URL}/api/requests/${selectedRequest.id}/offer`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}` }
         }).then(res => {
@@ -290,7 +291,7 @@ const Home = () => {
         };
 
         try {
-            const response = await fetch('http://localhost:8084/api/requests', {
+            const response = await fetch(`${API_BASE_URL}/api/requests`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -318,7 +319,7 @@ const Home = () => {
     const handleDeleteRequest = async (id) => {
         if (!window.confirm("Are you sure you want to delete this request?")) return;
         try {
-            const response = await fetch(`http://localhost:8084/api/requests/${id}`, {
+            const response = await fetch(`${API_BASE_URL}/api/requests/${id}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -337,7 +338,7 @@ const Home = () => {
     const handleClearActivity = async () => {
         if (!window.confirm("Are you sure you want to clear ALL your activity? This will delete all your requests.")) return;
         try {
-            const response = await fetch('http://localhost:8084/api/requests/my/all', {
+            const response = await fetch(`${API_BASE_URL}/api/requests/my/all`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
             });

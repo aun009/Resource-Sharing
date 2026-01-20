@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import Stomp from 'stompjs';
 import SockJS from 'sockjs-client/dist/sockjs';
+import { API_BASE_URL, WS_BASE_URL } from '../config';
 
 if (typeof global === 'undefined') {
     window.global = window;
@@ -19,7 +20,7 @@ const ChatWindow = ({ partnerName, partnerEmail, partnerPhoto, onClose, currentU
     const fetchHistory = async () => {
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:8084/api/chat/history', {
+            const response = await fetch(`${API_BASE_URL}/api/chat/history`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (response.ok) {
@@ -57,7 +58,7 @@ const ChatWindow = ({ partnerName, partnerEmail, partnerPhoto, onClose, currentU
 
         try {
             const token = localStorage.getItem('token');
-            await fetch('http://localhost:8084/api/chat/send', {
+            await fetch(`${API_BASE_URL}/api/chat/send`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -85,7 +86,7 @@ const ChatWindow = ({ partnerName, partnerEmail, partnerPhoto, onClose, currentU
         let retryTimeout = null;
 
         const connect = () => {
-            socket = new SockJS('http://localhost:8084/ws');
+            socket = new SockJS(`${WS_BASE_URL}/ws`);
             client = Stomp.over(socket);
 
             client.debug = (str) => {
