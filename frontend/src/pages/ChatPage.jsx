@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { motion } from 'framer-motion';
-import Stomp from 'stompjs';
+import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client/dist/sockjs';
 import { API_BASE_URL, WS_BASE_URL } from '../config';
 
@@ -84,29 +84,37 @@ const ChatPage = () => {
     useEffect(() => {
         if (!currentUserEmail) return;
 
-        const socket = new SockJS(`${WS_BASE_URL}/ws`);
-        const client = Stomp.over(socket);
-        client.debug = null; // Disable debug logs
+        const client = new Client({
+            webSocketFactory: () => new SockJS(`${WS_BASE_URL}/ws`),
+            debug: () => { }, // Disable debug logs
+            reconnectDelay: 5000,
+            heartbeatIncoming: 4000,
+            heartbeatOutgoing: 4000,
+            onConnect: () => {
+                setIsConnected(true);
+                client.subscribe(`/topic/user/${currentUserEmail}/messages`, (payload) => {
+                    const msg = JSON.parse(payload.body);
+                    const currentPartner = selectedPartnerRef.current;
 
-        client.connect({}, () => {
-            client.subscribe(`/topic/user/${currentUserEmail}/messages`, (payload) => {
-                const msg = JSON.parse(payload.body);
-                const currentPartner = selectedPartnerRef.current;
+                    // Update active chat if relevant
+                    if (currentPartner && (msg.sender === currentPartner.email || msg.recipient === currentPartner.email)) {
+                        setMessages(prev => [...prev, msg]);
+                    }
 
-                // Update active chat if relevant
-                if (currentPartner && (msg.sender === currentPartner.email || msg.recipient === currentPartner.email)) {
-                    setMessages(prev => [...prev, msg]);
-                }
-
-                // Refresh conversations list to show new message preview/order
-                fetchConversations();
-            });
-        }, (err) => {
-            console.error("WebSocket error:", err);
+                    // Refresh conversations list
+                    fetchConversations();
+                });
+            },
+            onStompError: (frame) => {
+                console.error('Broker reported error: ' + frame.headers['message']);
+                console.error('Additional details: ' + frame.body);
+            },
         });
 
+        client.activate();
+
         return () => {
-            if (client && client.connected) client.disconnect();
+            client.deactivate();
         };
     }, [currentUserEmail]);
 

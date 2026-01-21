@@ -3,10 +3,7 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
 
-// Polyfill for stompjs
-if (typeof global === 'undefined') {
-  window.global = window;
-}
+
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

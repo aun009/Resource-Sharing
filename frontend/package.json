@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@react-google-maps/api": "^2.20.8",
+    "@stomp/stompjs": "^7.2.1",
     "formik": "^2.4.9",
     "framer-motion": "^12.26.2",
     "leaflet": "^1.9.4",
@@ -21,7 +22,6 @@
     "react-leaflet": "^5.0.0",
     "react-router-dom": "^7.12.0",
     "sockjs-client": "^1.6.1",
-    "stompjs": "^2.3.3",
     "yup": "^1.7.1"
   },
   "devDependencies": {

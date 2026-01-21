@@ -1,12 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import Stomp from 'stompjs';
+import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client/dist/sockjs';
 import { API_BASE_URL, WS_BASE_URL } from '../config';
 
-if (typeof global === 'undefined') {
-    window.global = window;
-}
+
 
 const ChatWindow = ({ partnerName, partnerEmail, partnerPhoto, onClose, currentUserEmail }) => {
     const [messages, setMessages] = useState([]);
@@ -82,44 +80,42 @@ const ChatWindow = ({ partnerName, partnerEmail, partnerPhoto, onClose, currentU
         if (!currentUserEmail) return;
 
         let client = null;
-        let socket = null;
-        let retryTimeout = null;
 
         const connect = () => {
-            socket = new SockJS(`${WS_BASE_URL}/ws`);
-            client = Stomp.over(socket);
-
-            client.debug = (str) => {
-                // console.log("STOMP: " + str); // Uncomment for debugging
-            };
-
-            client.connect({}, () => {
-                const topic = `/topic/user/${currentUserEmail.toLowerCase()}/messages`;
-                console.log("Connected to WebSocket. Subscribing to " + topic);
-                client.subscribe(topic, (payload) => {
-                    const msg = JSON.parse(payload.body);
-                    // Update if message belongs to this conversation
-                    if (msg.sender === partnerEmail || (msg.sender === currentUserEmail && msg.recipient === partnerEmail)) {
-                        setMessages(prev => {
-                            // If sender is ME, we added it optimistically.
-                            if (msg.sender === currentUserEmail) return prev;
-                            return [...prev, msg];
-                        });
-                    }
-                });
-            }, (err) => {
-                console.error("WebSocket Connection Error, retrying in 5s...", err);
-                retryTimeout = setTimeout(connect, 5000);
+            client = new Client({
+                webSocketFactory: () => new SockJS(`${WS_BASE_URL}/ws`),
+                debug: () => { }, // Disable debug logs
+                reconnectDelay: 5000,
+                onConnect: () => {
+                    const topic = `/topic/user/${currentUserEmail.toLowerCase()}/messages`;
+                    // console.log("Connected to WebSocket. Subscribing to " + topic);
+                    client.subscribe(topic, (payload) => {
+                        const msg = JSON.parse(payload.body);
+                        // Update if message belongs to this conversation
+                        if (msg.sender === partnerEmail || (msg.sender === currentUserEmail && msg.recipient === partnerEmail)) {
+                            setMessages(prev => {
+                                // If sender is ME, we added it optimistically.
+                                if (msg.sender === currentUserEmail) return prev;
+                                return [...prev, msg];
+                            });
+                        }
+                    });
+                },
+                onStompError: (frame) => {
+                    console.error('Broker reported error: ' + frame.headers['message']);
+                    console.error('Additional details: ' + frame.body);
+                }
             });
+
+            client.activate();
         };
 
         connect();
 
         return () => {
-            if (client && client.connected) {
-                try { client.disconnect(); } catch (e) { console.error("Disconnect error", e); }
+            if (client) {
+                try { client.deactivate(); } catch (e) { console.error("Disconnect error", e); }
             }
-            if (retryTimeout) clearTimeout(retryTimeout);
         };
     }, [currentUserEmail, partnerEmail]);
 
