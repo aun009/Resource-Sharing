@@ -61,8 +61,8 @@ export const AuthProvider = ({ children }) => {
                 return { success: false, message: msg };
             }
         } catch (error) {
-            console.error("Registration failed", error);
-            return { success: false, message: "Network error" };
+            console.error("Registration failed connecting to:", `${API_BASE_URL}/api/auth/register`, error);
+            return { success: false, message: `Network error connecting to ${API_BASE_URL}` };
         }
     };
 
