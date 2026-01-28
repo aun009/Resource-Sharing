@@ -204,3 +204,5 @@ Distributed under the MIT License. See `LICENSE` for more information.
 **Project Maintainer** - [Arun](mailto:arunmahajan9240@gmil.com)
 
 Project Link: [https://github.com/aun009/skillswap](https://github.com/aun009/skillswap)
+
+Linked In : [https://www.linkedin.com/in/arun-mahajan-37159b203/](https://www.linkedin.com/in/arun-mahajan-37159b203/)
